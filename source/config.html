@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Field Validation - Config</title>
+  <style>
+    :root {
+      --txt: #1f2937;
+      --muted: #6b7280;
+      --bd: #e5e7eb;
+      --bd2: #d1d5db;
+      --panel: #f9fafb;
+      --shadow: 0 8px 20px rgba(0, 0, 0, .08);
+      --btn: #111827;
+      --btnTxt: #fff;
+      --btnSub: #f3f4f6;
+      --danger: #b91c1c;
+      --radius: 12px;
+      --font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 18px;
+      background: #fff;
+      color: var(--txt);
+      font: var(--font);
+    }
+
+    .wrap {
+      margin: 0 auto;
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .sub {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--bd);
+      background: #fff;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .card {
+      border: 1px solid var(--bd);
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+    }
+
+    .check {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      user-select: none;
+    }
+
+    .check input {
+      transform: translateY(1px);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid var(--bd2);
+      background: var(--btnSub);
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .btn.primary {
+      background: var(--btn);
+      border-color: var(--btn);
+      color: var(--btnTxt);
+    }
+
+    .btn.danger {
+      background: #fff;
+      border-color: #fecaca;
+      color: var(--danger);
+    }
+
+    .btn.mini {
+      padding: 6px 8px;
+      border-radius: 9px;
+      font-size: 12px;
+    }
+
+    .help {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px dashed var(--bd2);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 8px;
+      color: #111827;
+    }
+
+    /* Rule cards */
+    .ruleCard {
+      border: 1px solid var(--bd);
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .ruleHdr {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #fff;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .ruleHdrL {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .ruleTitle {
+      font-weight: 800;
+    }
+
+    .ruleBody {
+      padding: 12px;
+      background: var(--panel);
+    }
+
+    .section {
+      border: 1px solid var(--bd);
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+
+    .sectionTitle {
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .logicRow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .condTable {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .condTable th,
+    .condTable td {
+      border-bottom: 1px solid var(--bd);
+      padding: 8px 8px;
+      font-size: 12px;
+      vertical-align: top;
+    }
+
+    .condTable th {
+      text-align: left;
+      color: #111827;
+      font-weight: 800;
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .condTable tr:last-child td {
+      border-bottom: none;
+    }
+
+    .colDel {
+      width: 64px;
+      text-align: center;
+    }
+
+    .colMove {
+      width: 86px;
+      text-align: center;
+    }
+
+    select,
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--bd2);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #fff;
+      font: inherit;
+    }
+
+    input[type="number"] {
+      appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      margin: 0;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 38px;
+    }
+
+    .miniBtns {
+      display: inline-flex;
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .miniBtns button {
+      border: 1px solid var(--bd2);
+      background: #fff;
+      border-radius: 9px;
+      width: 34px;
+      height: 30px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .miniBtns button:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+
+    .miniBtns button:hover {
+      background: #f9fafb;
+    }
+
+    /* value editor container */
+    .valueWrap>* {
+      width: 100%;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .choice-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px;
+      border: 1px solid var(--bd2);
+      border-radius: 10px;
+      background: #fff;
+      box-sizing: border-box;
+      max-height: 120px;
+      overflow: auto;
+    }
+
+    .choice-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border: 1px solid var(--bd);
+      border-radius: 999px;
+      background: #f9fafb;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .choice-item input {
+      margin: 0;
+    }
+
+    .dateCompareBox {
+      display: grid;
+      grid-template-columns: minmax(120px, 1.2fr) minmax(70px, 90px) minmax(80px, 90px);
+      gap: 6px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .dateCompareBox select,
+    .dateCompareBox input[type="number"] {
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .ruleHdrL {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ruleHdrL .rule-name {
+      width: auto;
+      min-width: 260px;
+      flex: 1;
+    }
+
+    .rule-no {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      min-width: 72px;
+      height: 32px;
+
+      padding: 0 12px;
+
+      border-radius: 999px;
+
+      background: #111827;
+      color: #fff;
+
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .then-msg-row td {
+      background: #fafafa;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    .then-message {
+      min-height: 56px;
+    }
+
+    .ruleCard.is-collapsed .ruleBody {
+      display: none;
+    }
+
+    .btn-toggleRule {
+      width: 34px;
+      height: 32px;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .ruleCard.is-collapsed .btn-toggleRule {
+      transform: rotate(-90deg);
+    }
+
+    @media (max-width: 760px) {
+      .dateCompareBox {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <h1>フィールド条件バリデーション設定（IF → THEN）</h1>
+        <p class="sub">
+          IF条件を満たすとき、THENに設定した複数のフィールド条件を保存時に検証します。
+        </p>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <span class="pill" id="kv-fieldCount">フィールド読込：未</span>
+        <span class="pill" id="kv-ruleCount">ルール：0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:900; margin-bottom:6px;">バリデーション実行タイミング</div>
+      <div class="sub">
+        このプラグインは、レコードの保存時に設定されたIF条件を判定し、条件を満たした場合にTHENの検証を実行します。
+        検証に失敗した場合は保存を中止し、対象フィールドにエラーを表示します。
+      </div>
+
+      <div class="help">
+        <b>エラー表示について</b><br>
+        エラーはkintone標準のフィールドエラーとして表示されます。<br>
+        複数の検証に失敗した場合は、該当する各フィールドにエラーメッセージを表示します。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div style="font-weight:900;">ルール一覧</div>
+          <div class="sub">上から順に評価します（最初に見つかったエラーから返す運用でもOK）。</div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn primary" id="btn-addRule">＋ ルール追加</button>
+          <button type="button" class="btn" id="btn-clearAll">全削除</button>
+        </div>
+      </div>
+
+      <div id="rules-container"></div>
+    </div>
+
+    <div class="card" id="footerBar" style="position:sticky; bottom:0; z-index:9999;">
+      <div class="row" style="justify-content:flex-end;">
+        <button type="button" class="btn" id="btn-cancel">キャンセル</button>
+        <button type="button" class="btn primary" id="btn-save">保存</button>
+      </div>
+    </div>
+
+    <!-- templates -->
+    <template id="tpl-rule">
+      <div class="ruleCard" data-rule>
+        <div class="ruleHdr">
+          <div class="ruleHdrL">
+            <button type="button" class="btn mini btn-toggleRule" title="折りたたみ">▼</button>
+            <span class="rule-no">ルール1</span>
+
+            <label class="check">
+              <input type="checkbox" class="rule-enabled" checked />
+              有効
+            </label>
+
+            <input type="text" class="rule-name" placeholder="ルール名（例：契約時チェック）" />
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn danger btn-del" title="削除">削除</button>
+          </div>
+        </div>
+
+        <div class="ruleBody">
+          <!-- IF -->
+          <div class="section">
+            <div class="sectionTitle">IF（発火条件）</div>
+
+            <div class="logicRow">
+              <div style="min-width:240px;">
+                <label class="muted">条件の結合</label>
+                <select class="if-logic">
+                  <option value="AND" selected>AND（すべて満たす）</option>
+                  <option value="OR">OR（いずれか満たす）</option>
+                </select>
+              </div>
+              <div class="actions" style="margin-left:auto;">
+                <button type="button" class="btn mini btn-addCond">＋ 条件追加</button>
+              </div>
+            </div>
+
+            <div style="max-height:280px; overflow:auto; border:1px solid var(--bd); border-radius:12px;">
+              <table class="condTable">
+                <thead>
+                  <tr>
+                    <th>フィールド</th>
+                    <th style="width:170px;">演算子</th>
+                    <th>値</th>
+                    <th class="colDel">削除</th>
+                  </tr>
+                </thead>
+                <tbody class="if-tbody"></tbody>
+              </table>
+            </div>
+
+            <div class="muted" style="margin-top:6px;">
+              ※IF条件が0件の場合は「常に発火（常時チェック）」扱いにできます（実装側で）。
+            </div>
+          </div>
+
+          <!-- THEN -->
+          <div class="section">
+            <div class="sectionTitle">THEN（検証）</div>
+
+            <div class="logicRow">
+              <div class="muted">
+                IF条件を満たした場合、以下の検証をすべて実行します。
+              </div>
+              <div class="actions" style="margin-left:auto;">
+                <button type="button" class="btn mini btn-addThen">＋ 検証追加</button>
+              </div>
+            </div>
+
+            <div style="max-height:420px; overflow:auto; border:1px solid var(--bd); border-radius:12px;">
+              <table class="condTable">
+                <thead>
+                  <tr>
+                    <th>対象フィールド</th>
+                    <th style="width:170px;">演算子</th>
+                    <th>値</th>
+                    <th class="colDel">削除</th>
+                  </tr>
+                </thead>
+                <tbody class="then-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </template>
+
+    <template id="tpl-cond">
+      <tr data-cond>
+        <td>
+          <select class="if-field">
+            <option value="">（フィールドを選択）</option>
+          </select>
+        </td>
+        <td>
+          <select class="if-op"></select>
+        </td>
+        <td>
+          <div class="valueWrap if-value"></div>
+        </td>
+        <td class="colDel">
+          <button type="button" class="btn danger btn-cdel" title="削除">×</button>
+        </td>
+      </tr>
+    </template>
+
+    <template id="tpl-then">
+      <>
+        <!-- 1行目 -->
+        <tr data-then>
+          <td>
+            <select class="then-field">
+              <option value="">（フィールドを選択）</option>
+            </select>
+          </td>
+
+          <td>
+            <select class="then-op"></select>
+          </td>
+
+          <td>
+            <div class="valueWrap then-value"></div>
+          </td>
+
+          <td class="colDel">
+            <button type="button" class="btn danger btn-tdel" title="削除">×</button>
+          </td>
+        </tr>
+
+        <!-- 2行目 -->
+        <tr class="then-msg-row">
+          <td colspan="3">
+            <textarea class="then-message" placeholder="表示メッセージ（例：この条件では入力が必須です）"></textarea>
+          </td>
+
+          <td></td>
+        </tr>
+      </>
+    </template>
+
+  </div>
+</body>
+
+</html>

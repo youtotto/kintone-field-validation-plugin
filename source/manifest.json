@@ -1,0 +1,30 @@
+{
+  "manifest_version": 1,
+  "version": "1.0.0",
+  "type": "APP",
+
+  "name": {
+    "en": "Field Validation Plugin",
+    "ja": "条件付きフィールド入力チェック プラグイン"
+  },
+
+  "description": {
+    "en": "A plugin that allows you to configure conditional field validation rules for kintone records using IF / THEN logic.",
+    "ja": "kintoneレコードに対して、IF / THEN形式の条件付き入力チェックを設定できるプラグインです。"
+  },
+
+  "icon": "image/icon.png",
+
+  "desktop": {
+    "js": [
+      "js/desktop.js"
+    ]
+  },
+
+  "config": {
+    "html": "config.html",
+    "js": [
+      "js/config.js"
+    ]
+  }
+}
