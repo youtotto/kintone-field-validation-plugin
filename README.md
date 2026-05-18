@@ -18,6 +18,8 @@ JavaScriptを書かずに、業務ルールに応じた柔軟なバリデーシ�
 - ステータス条件対応
 - エラー時の条件詳細パネル表示
 
+<img width="1874" height="871" alt="スクリーンショット 2026-05-15 165551" src="https://github.com/user-attachments/assets/9c6b032d-ba7b-460e-a3e4-8a22cc9ab0c3" />
+
 ---
 
 # 📷 イメージ
@@ -31,6 +33,8 @@ AND
 契約区分 が 「新規」
 ```
 
+<img width="1660" height="530" alt="image" src="https://github.com/user-attachments/assets/b5366059-6c66-4a69-9774-b030c9b33f08" />
+
 ## THEN検証
 
 ```text
@@ -38,6 +42,8 @@ THEN
 契約書添付 は ファイルあり
 開始日 は 今日以降
 ```
+
+<img width="1702" height="835" alt="image" src="https://github.com/user-attachments/assets/62e4e67a-52e3-464a-83ba-2f3e0c747426" />
 
 ---
 
@@ -87,6 +93,8 @@ THEN
 
 など。
 
+<img width="1570" height="209" alt="image" src="https://github.com/user-attachments/assets/f3cae5f9-7cf9-4004-a030-0a610b0e11cf" />
+
 ---
 
 # 🖥 エラー表示
@@ -97,6 +105,10 @@ THEN
 - 条件詳細パネル表示
 
 を行います。
+
+<img width="1905" height="911" alt="スクリーンショット 2026-05-15 165722" src="https://github.com/user-attachments/assets/827fca87-426d-40c6-9f72-05cf0e796aaa" />
+
+<img width="572" height="231" alt="スクリーンショット 2026-05-15 165730" src="https://github.com/user-attachments/assets/38fde56e-f68a-4d48-8c19-9c8f7f8fe3b3" />
 
 ---
 
