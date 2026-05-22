@@ -41,10 +41,22 @@
       .filter(Boolean);
   }
 
-  function toArray(val) {
-    if (Array.isArray(val)) return val.map(v => String(v));
-    if (val === null || val === undefined || val === '') return [];
+  function toComparableArray(val) {
+    if (Array.isArray(val)) {
+      return val.map(v => {
+        if (v && typeof v === 'object') {
+          return String(v.code ?? v.name ?? v.fileKey ?? '');
+        }
+        return String(v);
+      }).filter(Boolean);
+    }
+
+    if (isEmpty(val)) return [];
     return [String(val)];
+  }
+
+  function toComparableString(val) {
+    return toComparableArray(val).join(',');
   }
 
   function toSafeNumber(value) {
@@ -62,7 +74,10 @@
   }
 
   function getFieldValue(record, code) {
-    return record[code]?.value;
+    if (!code || !record || !record[code]) {
+      return undefined;
+    }
+    return record[code].value;
   }
 
   function normalizeDateOnly(value) {
@@ -70,19 +85,21 @@
 
     const s = String(value);
 
-    // DATE: 2026-05-14
-    // DATETIME: 2026-05-14T01:00:00Z
-    const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!match) return null;
+    // DATE: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [y, m, d] = s.split('-').map(Number);
+      const date = new Date(y, m - 1, d);
+      date.setHours(0, 0, 0, 0);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
 
-    const y = Number(match[1]);
-    const m = Number(match[2]);
-    const d = Number(match[3]);
+    // DATETIME: UTC → ローカル日付に変換
+    const dt = new Date(s);
+    if (Number.isNaN(dt.getTime())) return null;
 
-    const date = new Date(y, m - 1, d);
+    const date = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
     date.setHours(0, 0, 0, 0);
-
-    return Number.isNaN(date.getTime()) ? null : date;
+    return date;
   }
 
   function addDays(date, days) {
@@ -154,31 +171,49 @@
   }
 
   function evaluateByOp(record, fieldCode, op, target) {
-    const val = getFieldValue(record, fieldCode);
-    const valArray = toArray(val);
+    const field = record?.[fieldCode];
+
+    // フィールドコード未設定・設定ミスの場合は、条件成立扱いにしない
+    if (!field) {
+      console.warn('条件チェック対象のフィールドが見つかりません。', {
+        fieldCode,
+        op
+      });
+      return false;
+    }
+
+    const val = field.value;
+    const valArray = toComparableArray(val);
+    const valText = toComparableString(val);
     const targetList = parseCsv(target);
 
     switch (op) {
-      case 'empty':
-        return isEmpty(val);
+      case 'eq': {
+        const targetStr = String(target ?? '');
+        // 複数選択同士の比較を考慮し、配列の要素をソートして結合したもので比較する
+        const currentSorted = [...valArray].sort().join(',');
+        const targetSorted = parseCsv(targetStr).sort().join(',');
+        return currentSorted === targetSorted;
+      }
 
-      case 'not_empty':
-        return !isEmpty(val);
-
-      case 'eq':
-        return String(val ?? '') === String(target ?? '');
-
-      case 'neq':
-        return String(val ?? '') !== String(target ?? '');
+      case 'neq': {
+        const targetStr = String(target ?? '');
+        const currentSorted = [...valArray].sort().join(',');
+        const targetSorted = parseCsv(targetStr).sort().join(',');
+        return currentSorted !== targetSorted;
+      }
 
       case 'in':
-        return targetList.includes(String(val ?? ''));
+        if (isEmpty(val)) return false;
+        return valArray.some(v => targetList.includes(v));
 
       case 'includes':
-        return String(val ?? '').includes(String(target ?? ''));
+        if (isEmpty(val)) return false;
+        return valText.includes(String(target ?? ''));
 
       case 'not_includes':
-        return !String(val ?? '').includes(String(target ?? ''));
+        if (isEmpty(val)) return true;
+        return !valText.includes(String(target ?? ''));
 
       case 'lte': {
         const a = toSafeNumber(val);
@@ -195,10 +230,10 @@
       }
 
       case 'any_in':
-        return valArray.some(v => targetList.includes(String(v)));
+        return valArray.some(v => targetList.includes(v));
 
       case 'none_in':
-        return !valArray.some(v => targetList.includes(String(v)));
+        return valArray.length === 0 || !valArray.some(v => targetList.includes(v));
 
       case 'has_file':
         return Array.isArray(val) && val.length > 0;
@@ -208,12 +243,12 @@
 
       case 'file_includes':
         return Array.isArray(val) && val.some(file =>
-          String(file.name || '').includes(String(target || ''))
+          String(file.name ?? '').includes(String(target ?? ''))
         );
 
       case 'file_not_includes':
         return !Array.isArray(val) || !val.some(file =>
-          String(file.name || '').includes(String(target || ''))
+          String(file.name ?? '').includes(String(target ?? ''))
         );
 
       case 'eq_date':
@@ -225,7 +260,8 @@
         return compareDate(record, fieldCode, op, target);
 
       default:
-        return true;
+        console.warn('未対応の演算子です。', { op, fieldCode });
+        return false;
     }
   }
 
