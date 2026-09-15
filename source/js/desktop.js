@@ -188,6 +188,14 @@
     const targetList = parseCsv(target);
 
     switch (op) {
+      // 空欄判定（"" / null / undefined / [] を空欄とみなす）
+      // v1.1.0 で evaluateByOp を書き直した際に落ちていたため復元
+      case 'empty':
+        return isEmpty(val);
+
+      case 'not_empty':
+        return !isEmpty(val);
+
       case 'eq': {
         const targetStr = String(target ?? '');
         // 複数選択同士の比較を考慮し、配列の要素をソートして結合したもので比較する
@@ -265,6 +273,24 @@
     }
   }
 
+  // 添付ファイル系演算子。kintone の保存前イベント（create.submit / edit.submit）では
+  // 添付ファイルフィールドの情報を取得できないため、実行時には評価不能として扱う。
+  const FILE_OPS = new Set(['has_file', 'no_file', 'file_includes', 'file_not_includes']);
+
+  function isFileOp(op) {
+    return FILE_OPS.has(op);
+  }
+
+  /**
+   * IF 条件を評価する。
+   * 戻り値: true（成立） / false（不成立） / null（評価不能）
+   *
+   * 添付ファイル系の条件は実際の添付状態を推測できないため「評価不能」とし、
+   * AND / OR は 3 値で判定する:
+   *   AND: 偽が1つでもあれば偽。偽が無く評価不能があれば評価不能。それ以外は真。
+   *   OR : 真が1つでもあれば真。真が無く評価不能があれば評価不能。それ以外は偽。
+   * 評価不能のときは呼び出し側でルールを適用しない（保存はブロックしない）。
+   */
   function evaluateIF(record, rule) {
     const conds = rule.if?.conds || [];
     const logic = rule.if?.logic || 'AND';
@@ -272,12 +298,20 @@
     if (conds.length === 0) return true;
 
     const results = conds.map(cond =>
-      evaluateByOp(record, cond.field, cond.op, cond.value)
+      isFileOp(cond.op)
+        ? null
+        : evaluateByOp(record, cond.field, cond.op, cond.value)
     );
 
-    return logic === 'OR'
-      ? results.some(Boolean)
-      : results.every(Boolean);
+    if (logic === 'OR') {
+      if (results.some(r => r === true)) return true;
+      if (results.some(r => r === null)) return null;
+      return false;
+    }
+
+    if (results.some(r => r === false)) return false;
+    if (results.some(r => r === null)) return null;
+    return true;
   }
 
   function evaluateThenItem(record, item) {
@@ -343,12 +377,46 @@
 
     rules.forEach((rule, ruleIndex) => {
       if (!rule.enabled) return;
-      if (!evaluateIF(record, rule)) return;
+
+      const ifResult = evaluateIF(record, rule);
+      if (ifResult === null) {
+        // 添付ファイル系の IF 条件により適用可否を判断できないルールは、
+        // 実際の添付状態を推測せずルールごとスキップする
+        console.warn('[FieldValidation] IF条件に添付ファイル条件が含まれています。kintoneの保存前イベントでは添付ファイル情報を取得できないため、このルールの適用可否を判断できずスキップしました。', {
+          rule: rule.name || `ルール${ruleIndex + 1}`,
+          conds: (rule.if?.conds || []).filter(c => isFileOp(c.op)).map(c => ({ fieldCode: c.field, op: c.op }))
+        });
+        return;
+      }
+      if (!ifResult) return;
 
       const thenItems = getThenItems(rule);
 
       thenItems.forEach((item, thenIndex) => {
         if (!item.field) return;
+
+        // 添付ファイル系の THEN は保存前イベントで判定できないため、この THEN だけをスキップする
+        if (isFileOp(item.op)) {
+          console.warn('[FieldValidation] kintoneの保存前イベントでは添付ファイル情報を取得できないため、添付ファイル条件の検証をスキップしました。', {
+            rule: rule.name || `ルール${ruleIndex + 1}`,
+            fieldCode: item.field,
+            op: item.op
+          });
+          return;
+        }
+
+        // THEN 対象フィールドが現在のレコードに存在しない場合（フォームから削除済み、
+        // サブテーブル内フィールドなど）は、この THEN だけを検証対象から除外する。
+        // フィールドエラーを付けられないのに event.error だけを立てると
+        // 全ユーザーが保存不能になるため。
+        if (!record || !record[item.field]) {
+          console.warn('[FieldValidation] THEN対象フィールドがレコードに存在しないため、この検証をスキップしました。', {
+            rule: rule.name || `ルール${ruleIndex + 1}`,
+            fieldCode: item.field,
+            op: item.op
+          });
+          return;
+        }
 
         const ok = evaluateThenItem(record, item);
 

@@ -124,6 +124,19 @@
     return list;
   }
 
+  /**
+   * 新規設定の候補に出せないフィールドの理由を返す（候補に出せる場合は null）。
+   *   'SUBTABLE': サブテーブル内フィールド（行単位バリデーション未対応）
+   *   'FILE'    : 添付ファイル（kintone の保存前イベントでは添付ファイル情報を取得できない）
+   * 既存設定に含まれる場合は削除せず「現在使用できないフィールド」として保持する。
+   */
+  function getUnsupportedReason(meta) {
+    if (!meta) return null;
+    if (meta.isSub) return 'SUBTABLE';
+    if (meta.type === 'FILE') return 'FILE';
+    return null;
+  }
+
   function fillFieldSelect(selectEl, selected) {
     if (!selectEl) return;
     const keep0 = selectEl.querySelector('option[value=""]');
@@ -136,15 +149,26 @@
       selectEl.appendChild(o0);
     }
 
-    FIELD_LIST.forEach((f) => {
+    // 実行時に評価できないフィールドは新規設定の候補から除外する（理由は getUnsupportedReason 参照）
+    FIELD_LIST.filter(f => !getUnsupportedReason(f)).forEach((f) => {
       const opt = document.createElement('option');
       opt.value = f.code;
-      const prefix = f.isSub ? `［テーブル:${f.parentCode}］` : '';
-      opt.textContent = `${prefix}${f.label}（${f.code} / ${f.type}）`;
+      opt.textContent = `${f.label}（${f.code} / ${f.type}）`;
       selectEl.appendChild(opt);
     });
 
-    if (selected) selectEl.value = selected;
+    if (selected) {
+      // 既存設定に候補外のコード（サブテーブル内・削除済みなど）が保存されている場合は、
+      // 設定を破棄せず「現在使用できないフィールド」として値を保持する
+      const exists = Array.from(selectEl.options).some(o => o.value === selected);
+      if (!exists) {
+        const optKeep = document.createElement('option');
+        optKeep.value = selected;
+        optKeep.textContent = `${selected}（現在使用できないフィールド）`;
+        selectEl.appendChild(optKeep);
+      }
+      selectEl.value = selected;
+    }
   }
 
   async function fetchStatusOptions(appId) {
@@ -223,7 +247,13 @@
     return getAllowedOpsByFieldType(fieldType);
   }
 
-  function setOpSelect(selectEl, ops, current) {
+  /**
+   * 演算子 select を構築する。
+   * keepUnknown=true（保存済み設定の読み込み時）に current が候補に無い場合は、
+   * 保存済み値を「（現在使用できない設定）」として一時オプションで保持し、
+   * 設定画面を開いただけで演算子が書き換わらないようにする。
+   */
+  function setOpSelect(selectEl, ops, current, keepUnknown = false) {
     const labels = {
       // 文字列
       eq: '＝（等しい）',
@@ -268,7 +298,21 @@
       selectEl.appendChild(o);
     });
 
-    selectEl.value = ops.includes(current) ? current : (ops[0] || 'not_empty');
+    if (ops.includes(current)) {
+      selectEl.value = current;
+      return;
+    }
+
+    if (keepUnknown && current) {
+      const keep = document.createElement('option');
+      keep.value = current;
+      keep.textContent = `${labels[current] || current}（現在使用できない設定）`;
+      selectEl.appendChild(keep);
+      selectEl.value = current;
+      return;
+    }
+
+    selectEl.value = ops[0] || 'not_empty';
   }
 
   function opNeedsValue(op) {
@@ -295,8 +339,9 @@
   }
 
   function getDateFieldOptions() {
+    // サブテーブル内の日付フィールドは実行時に参照できないため候補から除外
     return FIELD_LIST.filter(f =>
-      ['DATE', 'DATETIME', 'CREATED_TIME', 'UPDATED_TIME'].includes(f.type)
+      !f.isSub && ['DATE', 'DATETIME', 'CREATED_TIME', 'UPDATED_TIME'].includes(f.type)
     );
   }
 
@@ -365,15 +410,21 @@
     getDateFieldOptions().forEach((f) => {
       const opt = document.createElement('option');
       opt.value = f.code;
-
-      const prefix = f.isSub ? `［テーブル:${f.parentCode}］` : '';
-      opt.textContent = `${prefix}${f.label}から`;
+      opt.textContent = `${f.label}から`;
 
       baseSelect.appendChild(opt);
     });
 
     // 初期値
     if (parsed.baseType === 'field' && parsed.baseField) {
+      // 既存設定の基準フィールドが候補に無い場合も値を保持する
+      const exists = Array.from(baseSelect.options).some(o => o.value === parsed.baseField);
+      if (!exists) {
+        const optKeep = document.createElement('option');
+        optKeep.value = parsed.baseField;
+        optKeep.textContent = `${parsed.baseField}（現在使用できないフィールド）から`;
+        baseSelect.appendChild(optKeep);
+      }
       baseSelect.value = parsed.baseField;
     } else {
       baseSelect.value = '__TODAY__';
@@ -599,7 +650,8 @@
 
     // op select
     const meta = FIELD_MAP.get(selField.value);
-    setOpSelect(selOp, allowedOpsForIF(meta?.type || ''), cond?.op || 'not_empty');
+    // 保存済み条件の読み込み時は、候補に無い演算子でも保持する（keepUnknown）
+    setOpSelect(selOp, allowedOpsForIF(meta?.type || ''), cond?.op || 'not_empty', Boolean(cond?.op));
     renderValueEditor(wrapVal, meta, selOp.value, cond?.value || '');
 
     selField.addEventListener('change', () => {
@@ -713,7 +765,8 @@
     fillFieldSelect(fieldSel, item?.field || '');
 
     const meta = FIELD_MAP.get(fieldSel.value);
-    setOpSelect(opSel, allowedOpsForTHEN(meta?.type || ''), item?.op || 'not_empty');
+    // 保存済み検証の読み込み時は、候補に無い演算子でも保持する（keepUnknown）
+    setOpSelect(opSel, allowedOpsForTHEN(meta?.type || ''), item?.op || 'not_empty', Boolean(item?.op));
     renderValueEditor(valueWrap, meta, opSel.value, item?.value || '');
 
     msg.value = item?.message || '';

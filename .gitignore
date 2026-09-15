@@ -8,3 +8,5 @@ private.key
 .vscode/
 .DS_Store
 *.txt
+# 実機確認用の一時ビルド（正式配布物は plugin/ に置く）
+build/
