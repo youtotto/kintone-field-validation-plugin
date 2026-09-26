@@ -1,5 +1,10 @@
 # Field Validation Plugin for kintone
 
+## 公式リンク
+
+- [無料版の配布ページ](https://github.com/youtotto/kintone-field-validation-plugin)
+- [紹介ページ](https://www.nestrec.com/post/kintone-field-validation)
+
 kintoneレコードに対して、  
 **IF / THEN形式の条件付き入力チェック** をGUIで設定できるプラグインです。
 
@@ -144,9 +149,19 @@ THEN
 
 # 📦 インストール方法
 
-1. ReleaseからZIPファイルをダウンロード
+[Releases](https://github.com/youtotto/kintone-field-validation-plugin/releases/latest) から次のファイルをダウンロードします。
+
+| ファイル | 用途 |
+|---|---|
+| `field-validation-1.1.1-free-bundle.zip` | 説明書付きの配布用 ZIP（おすすめ）。**ZIP を解凍し、中の `field-validation-1.1.1-free-plugin.zip` を kintone へ読み込みます。bundle 自体は kintone に直接読み込みません** |
+| `field-validation-1.1.1-free-plugin.zip` | kintone に直接読み込むプラグイン（bundle の中身と同じファイル） |
+| `SHA256SUMS.txt` | 上記 ZIP の SHA-256 |
+
+kintone への読み込みは、kintone システム管理 →「プラグイン」→「読み込む」で `field-validation-1.1.1-free-plugin.zip` を ZIP のまま選びます。
+
+1. Release から ZIP をダウンロード（bundle の場合は解凍）
 2. kintone管理画面 → プラグイン
-3. ZIPファイルを読み込み
+3. `field-validation-1.1.1-free-plugin.zip` を読み込み
 4. アプリへ適用
 
 ---

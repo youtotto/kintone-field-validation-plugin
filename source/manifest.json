@@ -12,6 +12,10 @@
     "en": "A plugin that allows you to configure conditional field validation rules for kintone records using IF / THEN logic.",
     "ja": "kintoneレコードに対して、IF / THEN形式の条件付き入力チェックを設定できるプラグインです。"
   },
+  "homepage_url": {
+    "en": "https://www.nestrec.com/post/kintone-field-validation",
+    "ja": "https://www.nestrec.com/post/kintone-field-validation"
+  },
 
   "icon": "image/icon.png",
 
